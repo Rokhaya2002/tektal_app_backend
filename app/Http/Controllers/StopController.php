@@ -18,4 +18,22 @@ class StopController extends Controller
 
         return response()->json($stops);
     }
+
+    public function search(Request $request)
+    {
+        $query = $request->query('query');
+
+        if (!$query) {
+            return response()->json([]);
+        }
+
+        $results = DB::table('stops')
+            ->where('name', 'like', '%' . $query . '%')
+            ->distinct()          
+            ->orderBy('name')
+            ->limit(10)
+            ->pluck('name');
+
+        return response()->json($results);
+    }
 }
