@@ -11,30 +11,6 @@ use Illuminate\Validation\ValidationException;
 class AdminAuthController extends Controller
 {
     /**
-     * Inscription d'un admin
-     */
-    public function register(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'is_admin' => true,
-        ]);
-
-        return response()->json([
-            'message' => 'Admin inscrit avec succès',
-            'user' => $user
-        ], 201);
-    }
-
-    /**
      * Connexion d'un admin
      */
     public function login(Request $request)
@@ -58,6 +34,18 @@ class AdminAuthController extends Controller
             'user' => $user,
             'token' => $token,
             'message' => 'Connexion réussie'
+        ]);
+    }
+
+    /**
+     * Déconnexion admin
+     */
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Déconnexion réussie'
         ]);
     }
 }

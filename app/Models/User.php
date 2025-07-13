@@ -22,6 +22,8 @@ class User extends Authenticatable
         'email',
         'password',
         'is_admin',
+        'last_login_at',
+        'is_active',
     ];
 
     /**
@@ -42,5 +44,31 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'is_admin' => 'boolean',
+        'last_login_at' => 'datetime',
+        'is_active' => 'boolean',
     ];
+
+    /**
+     * Relation avec l'historique de recherche
+     */
+    public function searchHistory()
+    {
+        return $this->hasMany(SearchHistory::class);
+    }
+
+    /**
+     * Mettre à jour la date de dernière connexion
+     */
+    public function updateLastLogin()
+    {
+        $this->update(['last_login_at' => now()]);
+    }
+
+    /**
+     * Vérifier si l'utilisateur est actif
+     */
+    public function isActive()
+    {
+        return $this->is_active !== false;
+    }
 }

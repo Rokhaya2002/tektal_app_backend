@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\Line;
 use App\Models\Stop;
 use App\Models\SearchHistory;
@@ -39,15 +40,20 @@ class LineController extends Controller
         }
 
         // Enregistrer la recherche dans l'historique
-        $this->saveSearchHistory($from, $to);
+        $this->saveSearchHistory($from, $to, $request);
 
         $lines = Line::with('stops')->get();
         $results = [];
 
         foreach ($lines as $line) {
             $stopNames = $line->stops->pluck('name');
-            $fromIndex = $stopNames->search($from);
-            $toIndex = $stopNames->search($to);
+            // Recherche insensible à la casse
+            $fromIndex = $stopNames->search(function ($stopName) use ($from) {
+                return strtolower($stopName) === strtolower($from);
+            });
+            $toIndex = $stopNames->search(function ($stopName) use ($to) {
+                return strtolower($stopName) === strtolower($to);
+            });
 
             if ($fromIndex !== false && $toIndex !== false && $fromIndex !== $toIndex) {
                 $results[] = [
@@ -66,11 +72,20 @@ class LineController extends Controller
     /**
      * Enregistrer une recherche dans l'historique
      */
-    private function saveSearchHistory($from, $to)
+    private function saveSearchHistory($from, $to, $request)
     {
         try {
+            // Récupérer l'utilisateur connecté
+            $user = $request->user();
+
+            if (!$user) {
+                // Si pas d'utilisateur connecté, on ne sauvegarde pas l'historique
+                return;
+            }
+
             $searchHistory = SearchHistory::where('from', $from)
                 ->where('to', $to)
+                ->where('user_id', $user->id)
                 ->first();
 
             if ($searchHistory) {
@@ -79,13 +94,14 @@ class LineController extends Controller
                 SearchHistory::create([
                     'from' => $from,
                     'to' => $to,
+                    'user_id' => $user->id,
                     'count' => 1,
                     'last_searched_at' => now()
                 ]);
             }
         } catch (\Exception $e) {
             // Log l'erreur mais ne pas faire échouer la recherche
-            \Log::error('Erreur lors de la sauvegarde de l\'historique: ' . $e->getMessage());
+            Log::error('Erreur lors de la sauvegarde de l\'historique: ' . $e->getMessage());
         }
     }
 
@@ -104,29 +120,32 @@ class LineController extends Controller
             return response()->json([]);
         }
 
-        // Recherche dans les noms d'arrêts
-        $stops = Stop::where('name', 'LIKE', '%' . $query . '%')
+        $lowerQuery = strtolower($query);
+
+        // Recherche dans les noms d'arrêts (insensible à la casse)
+        $stops = Stop::whereRaw('LOWER(name) LIKE ?', ['%' . $lowerQuery . '%'])
             ->select('name')
             ->distinct()
             ->limit(10)
             ->get()
             ->pluck('name');
 
-        // Recherche dans les noms de lignes
-        $lines = Line::where('name', 'LIKE', '%' . $query . '%')
+        // Recherche dans les noms de lignes (insensible à la casse)
+        $lines = Line::whereRaw('LOWER(name) LIKE ?', ['%' . $lowerQuery . '%'])
             ->select('name', 'departure', 'destination')
             ->limit(5)
             ->get();
 
-        // Recherche dans les points de départ et destination
-        $departures = Line::where('departure', 'LIKE', '%' . $query . '%')
+        // Recherche dans les points de départ (insensible à la casse)
+        $departures = Line::whereRaw('LOWER(departure) LIKE ?', ['%' . $lowerQuery . '%'])
             ->select('departure')
             ->distinct()
             ->limit(5)
             ->get()
             ->pluck('departure');
 
-        $destinations = Line::where('destination', 'LIKE', '%' . $query . '%')
+        // Recherche dans les destinations (insensible à la casse)
+        $destinations = Line::whereRaw('LOWER(destination) LIKE ?', ['%' . $lowerQuery . '%'])
             ->select('destination')
             ->distinct()
             ->limit(5)
@@ -160,8 +179,13 @@ class LineController extends Controller
 
         foreach ($lines as $line) {
             $stopNames = $line->stops->pluck('name');
-            $fromIndex = $stopNames->search($from);
-            $toIndex = $stopNames->search($to);
+            // Recherche insensible à la casse
+            $fromIndex = $stopNames->search(function ($stopName) use ($from) {
+                return strtolower($stopName) === strtolower($from);
+            });
+            $toIndex = $stopNames->search(function ($stopName) use ($to) {
+                return strtolower($stopName) === strtolower($to);
+            });
 
             if ($fromIndex !== false && $toIndex !== false && $fromIndex !== $toIndex) {
                 $suggestions[] = [

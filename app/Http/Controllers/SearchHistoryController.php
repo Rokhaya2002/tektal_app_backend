@@ -27,12 +27,20 @@ class SearchHistoryController extends Controller
             ], 400);
         }
 
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'error' => 'Utilisateur non connecté'
+            ], 401);
+        }
+
         $from = $request->input('from');
         $to = $request->input('to');
 
-        // Chercher si cette recherche existe déjà
+        // Chercher si cette recherche existe déjà pour cet utilisateur
         $searchHistory = SearchHistory::where('from', $from)
             ->where('to', $to)
+            ->where('user_id', $user->id)
             ->first();
 
         if ($searchHistory) {
@@ -43,6 +51,7 @@ class SearchHistoryController extends Controller
             $searchHistory = SearchHistory::create([
                 'from' => $from,
                 'to' => $to,
+                'user_id' => $user->id,
                 'count' => 1,
                 'last_searched_at' => now()
             ]);
@@ -59,13 +68,20 @@ class SearchHistoryController extends Controller
      */
     public function index(Request $request)
     {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'error' => 'Utilisateur non connecté'
+            ], 401);
+        }
+
         $limit = $request->query('limit', 20);
         $type = $request->query('type', 'recent'); // 'recent' ou 'popular'
 
         if ($type === 'popular') {
-            $history = SearchHistory::popular($limit)->get();
+            $history = SearchHistory::where('user_id', $user->id)->popular($limit)->get();
         } else {
-            $history = SearchHistory::recent($limit)->get();
+            $history = SearchHistory::where('user_id', $user->id)->recent($limit)->get();
         }
 
         return response()->json([
@@ -79,8 +95,15 @@ class SearchHistoryController extends Controller
      */
     public function suggestions(Request $request)
     {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'error' => 'Utilisateur non connecté'
+            ], 401);
+        }
+
         $limit = $request->query('limit', 10);
-        $suggestions = SearchHistory::getPopularSuggestions($limit);
+        $suggestions = SearchHistory::where('user_id', $user->id)->getPopularSuggestions($limit);
 
         return response()->json([
             'suggestions' => $suggestions,
@@ -200,11 +223,18 @@ class SearchHistoryController extends Controller
     }
 
     /**
-     * Supprimer tout l'historique
+     * Supprimer tout l'historique de l'utilisateur connecté
      */
-    public function clear()
+    public function clear(Request $request)
     {
-        SearchHistory::truncate();
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'error' => 'Utilisateur non connecté'
+            ], 401);
+        }
+
+        SearchHistory::where('user_id', $user->id)->delete();
 
         return response()->json([
             'message' => 'Historique supprimé avec succès'
@@ -212,11 +242,20 @@ class SearchHistoryController extends Controller
     }
 
     /**
-     * Supprimer une recherche spécifique
+     * Supprimer une recherche spécifique de l'utilisateur connecté
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $searchHistory = SearchHistory::find($id);
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'error' => 'Utilisateur non connecté'
+            ], 401);
+        }
+
+        $searchHistory = SearchHistory::where('id', $id)
+            ->where('user_id', $user->id)
+            ->first();
 
         if (!$searchHistory) {
             return response()->json([
@@ -232,10 +271,17 @@ class SearchHistoryController extends Controller
     }
 
     /**
-     * Rechercher dans l'historique
+     * Rechercher dans l'historique de l'utilisateur connecté
      */
     public function search(Request $request)
     {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'error' => 'Utilisateur non connecté'
+            ], 401);
+        }
+
         $query = $request->query('q');
 
         if (!$query) {
@@ -244,8 +290,13 @@ class SearchHistoryController extends Controller
             ], 400);
         }
 
-        $results = SearchHistory::where('from', 'LIKE', '%' . $query . '%')
-            ->orWhere('to', 'LIKE', '%' . $query . '%')
+        $lowerQuery = strtolower($query);
+
+        $results = SearchHistory::where('user_id', $user->id)
+            ->where(function ($q) use ($lowerQuery) {
+                $q->whereRaw('LOWER(`from`) LIKE ?', ['%' . $lowerQuery . '%'])
+                    ->orWhereRaw('LOWER(`to`) LIKE ?', ['%' . $lowerQuery . '%']);
+            })
             ->orderBy('last_searched_at', 'desc')
             ->limit(10)
             ->get();

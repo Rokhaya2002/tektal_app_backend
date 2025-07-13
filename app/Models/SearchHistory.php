@@ -14,14 +14,22 @@ class SearchHistory extends Model
     protected $fillable = [
         'from',
         'to',
+        'user_id',
         'count',
         'last_searched_at'
     ];
 
     protected $casts = [
         'last_searched_at' => 'datetime',
-        'count' => 'integer'
+        'count' => 'integer',
+        'user_id' => 'integer'
     ];
+
+    // Relation avec l'utilisateur
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     // Méthode pour incrémenter le compteur et mettre à jour la date
     public function incrementSearch()
