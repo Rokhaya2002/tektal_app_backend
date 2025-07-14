@@ -114,6 +114,94 @@ class LinesAndStopsSeeder extends Seeder
                     'Terminus Petersen',
                 ],
             ],
+            [
+        'name' => 'DDD 10',
+        'departure' => 'Liberté 6',
+        'destination' => 'Sandaga',
+        'stops' => [
+            'Liberté 6',
+            'HLM Grand-Yoff',
+            'Colobane',
+            'Sandaga',
+        ],
+            ],
+            [
+        'name' => 'DDD 20',
+        'departure' => 'Ouakam',
+        'destination' => 'Petersen',
+        'stops' => [
+            'Ouakam',
+            'Fann Résidence',
+            'Place de l’Indépendance',
+            'Petersen',
+        ],
+            ],
+            [
+        'name' => 'DDD 18',
+        'departure' => 'Parcelles U22',
+        'destination' => 'Marché Kermel',
+        'stops' => [
+            'Parcelles U22',
+            'Grand Médine',
+            'Liberté 5',
+            'Marché Kermel',
+        ],
+            ],
+            [
+        'name' => 'DDD 4',
+        'departure' => 'Guédiawaye',
+        'destination' => 'Université UCAD',
+        'stops' => [
+            'Guédiawaye',
+            'Patte d’Oie',
+            'Avenue Blaise Diagne',
+            'Université UCAD',
+        ],
+            ],
+            [
+        'name' => 'TATA 46',
+        'departure' => 'Keur Massar',
+        'destination' => 'Yoff Virage',
+        'stops' => [
+            'Keur Massar',
+            'Rufisque',
+            'Pikine',
+            'Yoff Virage',
+        ],
+            ],
+            [
+        'name' => 'TATA 30',
+        'departure' => 'Thiaroye',
+        'destination' => 'Médina',
+        'stops' => [
+            'Thiaroye',
+            'Dalifort',
+            'Grand Dakar',
+            'Médina',
+        ],
+            ],
+            [
+        'name' => 'TATA 85',
+        'departure' => 'Malika',
+        'destination' => 'Colobane',
+        'stops' => [
+            'Malika',
+            'Diamaguène',
+            'Yeumbeul',
+            'Colobane',
+        ],
+            ],
+            [
+        'name' => 'TATA 34',
+        'departure' => 'Cambérène',
+        'destination' => 'Point E',
+        'stops' => [
+            'Cambérène',
+            'Niary Tally',
+            'Fass',
+            'Point E',
+        ],
+            ],
         ];
 
         // Création des arrêts uniques (partagés entre lignes si besoin)
