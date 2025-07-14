@@ -42,11 +42,23 @@ class LineController extends Controller
         // Enregistrer la recherche dans l'historique
         $this->saveSearchHistory($from, $to, $request);
 
-        $lines = Line::with('stops')->get();
+        $lines = Line::with(['stops' => function ($query) {
+            $query->orderBy('line_stop.stop_order');
+        }])->get();
+
         $results = [];
 
         foreach ($lines as $line) {
-            $stopNames = $line->stops->pluck('name');
+            // Récupérer les arrêts dans l'ordre correct avec leur position
+            $orderedStops = $line->stops->map(function ($stop) {
+                return [
+                    'name' => $stop->name,
+                    'order' => $stop->pivot->stop_order
+                ];
+            })->sortBy('order')->values();
+
+            $stopNames = $orderedStops->pluck('name');
+
             // Recherche insensible à la casse
             $fromIndex = $stopNames->search(function ($stopName) use ($from) {
                 return strtolower($stopName) === strtolower($from);
@@ -174,11 +186,23 @@ class LineController extends Controller
             return response()->json([]);
         }
 
-        $lines = Line::with('stops')->get();
+        $lines = Line::with(['stops' => function ($query) {
+            $query->orderBy('line_stop.stop_order');
+        }])->get();
+
         $suggestions = [];
 
         foreach ($lines as $line) {
-            $stopNames = $line->stops->pluck('name');
+            // Récupérer les arrêts dans l'ordre correct avec leur position
+            $orderedStops = $line->stops->map(function ($stop) {
+                return [
+                    'name' => $stop->name,
+                    'order' => $stop->pivot->stop_order
+                ];
+            })->sortBy('order')->values();
+
+            $stopNames = $orderedStops->pluck('name');
+
             // Recherche insensible à la casse
             $fromIndex = $stopNames->search(function ($stopName) use ($from) {
                 return strtolower($stopName) === strtolower($from);
