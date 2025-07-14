@@ -11,9 +11,10 @@ class LinesAndStopsSeeder extends Seeder
 {
     public function run()
     {
-        DB::table('line_stop')->truncate();
-        DB::table('stops')->truncate();
-        DB::table('lines')->truncate();
+        // Supprimer les données dans le bon ordre pour éviter les erreurs FK
+        DB::table('line_stop')->delete();
+        DB::table('stops')->delete();
+        DB::table('lines')->delete();
 
         $linesData = [
             [
