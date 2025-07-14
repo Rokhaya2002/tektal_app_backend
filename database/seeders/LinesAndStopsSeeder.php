@@ -11,14 +11,10 @@ class LinesAndStopsSeeder extends Seeder
 {
     public function run()
     {
-        DB::table('line_stop')->truncate();
-        DB::table('stops')->truncate();
-        DB::table('lines')->truncate();
-
         $linesData = [
             [
-        'name' => 'DDD 1',
-        'departure' => 'Parcelles Assainies',
+                'name' => 'DDD 1',
+                'departure' => 'Parcelles Assainies',
                 'destination' => 'Place LECLERC',
                 'stops' => [
                     'Sapeur Pompiers',
@@ -45,7 +41,7 @@ class LinesAndStopsSeeder extends Seeder
                 ],
             ],
             [
-        'name' => 'DDD 4',
+                'name' => 'DDD 4',
                 'departure' => 'Liberté 5',
                 'destination' => 'Place LECLERC',
                 'stops' => [
@@ -79,7 +75,51 @@ class LinesAndStopsSeeder extends Seeder
                 ],
             ],
             [
-        'name' => 'TATA 1',
+                'name' => 'DDD 9',
+                'departure' => 'Liberté 6',
+                'destination' => 'Sandaga',
+                'stops' => [
+                    'Liberté 6',
+                    'HLM Grand-Yoff',
+                    'Colobane',
+                    'Sandaga',
+                ],
+            ],
+            [
+                'name' => 'DDD 10',
+                'departure' => 'Guédiawaye',
+                'destination' => 'Université UCAD',
+                'stops' => [
+                    'Guédiawaye',
+                    'Patte d\'Oie',
+                    'Avenue Blaise Diagne',
+                    'Université UCAD',
+                ],
+            ],
+            [
+                'name' => 'DDD 18',
+                'departure' => 'Parcelles U22',
+                'destination' => 'Marché Kermel',
+                'stops' => [
+                    'Parcelles U22',
+                    'Grand Médine',
+                    'Liberté 5',
+                    'Marché Kermel',
+                ],
+            ],
+            [
+                'name' => 'DDD 20',
+                'departure' => 'Ouakam',
+                'destination' => 'Petersen',
+                'stops' => [
+                    'Ouakam',
+                    'Fann Résidence',
+                    'Place de l\'Indépendance',
+                    'Petersen',
+                ],
+            ],
+            [
+                'name' => 'TATA 1',
                 'departure' => 'HLM Grand Yoff',
                 'destination' => 'Lat Dior',
                 'stops' => [
@@ -98,7 +138,7 @@ class LinesAndStopsSeeder extends Seeder
                 ],
             ],
             [
-        'name' => 'TATA 2',
+                'name' => 'TATA 2',
                 'departure' => 'Parcelles Assainies',
                 'destination' => 'Petersen',
                 'stops' => [
@@ -114,30 +154,73 @@ class LinesAndStopsSeeder extends Seeder
                     'Terminus Petersen',
                 ],
             ],
+            [
+                'name' => 'TATA 30',
+                'departure' => 'Cambérène',
+                'destination' => 'Point E',
+                'stops' => [
+                    'Cambérène',
+                    'Niary Tally',
+                    'Fass',
+                    'Point E',
+                ],
+            ],
+            [
+                'name' => 'TATA 46',
+                'departure' => 'Keur Massar',
+                'destination' => 'Yoff Virage',
+                'stops' => [
+                    'Keur Massar',
+                    'Rufisque',
+                    'Pikine',
+                    'Yoff Virage',
+                ],
+            ],
+            [
+                'name' => 'TATA 54',
+                'departure' => 'Malika',
+                'destination' => 'Colobane',
+                'stops' => [
+                    'Malika',
+                    'Diamaguène',
+                    'Yeumbeul',
+                    'Colobane',
+                ],
+            ],
+            [
+                'name' => 'TATA 83',
+                'departure' => 'Thiaroye',
+                'destination' => 'Médina',
+                'stops' => [
+                    'Thiaroye',
+                    'Dalifort',
+                    'Grand Dakar',
+                    'Médina',
+                ],
+            ],
         ];
 
-        // Création des arrêts uniques (partagés entre lignes si besoin)
+        // Création des arrêts uniques
         $allStops = [];
         foreach ($linesData as $lineData) {
             foreach ($lineData['stops'] as $stopName) {
                 if (!isset($allStops[$stopName])) {
-                    $allStops[$stopName] = Stop::create([
-                        'name' => $stopName,
-                    ]);
+                    $allStops[$stopName] = Stop::create(['name' => $stopName]);
                 }
             }
-    }
+        }
 
-        // Création des lignes et associations arrêts/ligne avec ordre
+        // Création des lignes + associations
         foreach ($linesData as $lineData) {
             $line = Line::create([
                 'name' => $lineData['name'],
                 'departure' => $lineData['departure'],
                 'destination' => $lineData['destination'],
             ]);
+
             foreach ($lineData['stops'] as $order => $stopName) {
                 $line->stops()->attach($allStops[$stopName]->id, ['order' => $order + 1]);
-    }
-}
+            }
+        }
     }
 }
