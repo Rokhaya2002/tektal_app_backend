@@ -119,7 +119,7 @@ class SearchHistoryController extends Controller
         $totalSearches = SearchHistory::sum('count');
         $uniqueSearches = SearchHistory::count();
         $mostPopular = SearchHistory::popular(10)->get();
-        $recentSearches = SearchHistory::recent(10)->get();
+        $recentSearches = SearchHistory::recent(5)->get();
 
         // Statistiques par jour (7 derniers jours)
         $dailyStats = SearchHistory::selectRaw('TO_CHAR(last_searched_at, \'YYYY-MM-DD\') as date, SUM(count) as total_searches')
@@ -128,18 +128,18 @@ class SearchHistoryController extends Controller
             ->orderBy('date')
             ->get();
 
-        // Top 10 des destinations les plus recherchées
+        // Top 5 des destinations les plus recherchées
         $topDestinations = SearchHistory::selectRaw('"to" as destination, SUM(count) as total_searches')
             ->groupBy('to')
             ->orderByDesc('total_searches')
-            ->limit(10)
+            ->limit(5)
             ->get();
 
-        // Top 10 des points de départ les plus recherchés
+        // Top 5 des points de départ les plus recherchés
         $topDepartures = SearchHistory::selectRaw('"from" as departure, SUM(count) as total_searches')
             ->groupBy('from')
             ->orderByDesc('total_searches')
-            ->limit(10)
+            ->limit(5)
             ->get();
 
         // Statistiques par heure (24 dernières heures)
