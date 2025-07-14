@@ -2,59 +2,38 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Stop;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
 
 class AdminStopController extends Controller
 {
     public function index()
     {
-        $stops = DB::table('stops')
-            ->join('lines', 'stops.line_id', '=', 'lines.id')
-            ->select('stops.id', 'stops.name', 'stops.line_id', 'stops.stop_order', 'lines.name as line_name')
-            ->orderBy('lines.name')
-            ->orderBy('stops.stop_order')
-            ->get();
-
+        $stops = Stop::all();
         return response()->json($stops);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'line_id' => 'required|integer|exists:lines,id',
-            'stop_order' => 'required|integer|min:1',
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255|unique:stops,name'
         ]);
 
-        $id = DB::table('stops')->insertGetId([
-            'name' => $request->name,
-            'line_id' => $request->line_id,
-            'stop_order' => $request->stop_order,
-            'created_at' => now(),
-            'updated_at' => now(),
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
+        }
+
+        $stop = Stop::create([
+            'name' => $request->name
         ]);
 
-        $stop = DB::table('stops')
-            ->join('lines', 'stops.line_id', '=', 'lines.id')
-            ->where('stops.id', $id)
-            ->select('stops.id', 'stops.name', 'stops.line_id', 'stops.stop_order', 'lines.name as line_name')
-            ->first();
-
-        return response()->json([
-            'message' => 'Arrêt créé avec succès',
-            'stop' => $stop
-        ], 201);
+        return response()->json(['message' => 'Arrêt créé avec succès', 'stop' => $stop], 201);
     }
 
     public function show($id)
     {
-        $stop = DB::table('stops')
-            ->join('lines', 'stops.line_id', '=', 'lines.id')
-            ->where('stops.id', $id)
-            ->select('stops.id', 'stops.name', 'stops.line_id', 'stops.stop_order', 'lines.name as line_name')
-            ->first();
+        $stop = Stop::find($id);
 
         if (!$stop) {
             return response()->json(['message' => 'Arrêt non trouvé'], 404);
@@ -65,49 +44,42 @@ class AdminStopController extends Controller
 
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'line_id' => 'required|integer|exists:lines,id',
-            'stop_order' => 'required|integer|min:1',
-        ]);
-
-        $stop = DB::table('stops')->where('id', $id)->first();
+        $stop = Stop::find($id);
 
         if (!$stop) {
             return response()->json(['message' => 'Arrêt non trouvé'], 404);
         }
 
-        DB::table('stops')->where('id', $id)->update([
-            'name' => $request->name,
-            'line_id' => $request->line_id,
-            'stop_order' => $request->stop_order,
-            'updated_at' => now(),
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255|unique:stops,name,' . $id
         ]);
 
-        $updatedStop = DB::table('stops')
-            ->join('lines', 'stops.line_id', '=', 'lines.id')
-            ->where('stops.id', $id)
-            ->select('stops.id', 'stops.name', 'stops.line_id', 'stops.stop_order', 'lines.name as line_name')
-            ->first();
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
+        }
 
-        return response()->json([
-            'message' => 'Arrêt mis à jour avec succès',
-            'stop' => $updatedStop
+        $stop->update([
+            'name' => $request->name
         ]);
+
+        return response()->json(['message' => 'Arrêt modifié avec succès', 'stop' => $stop]);
     }
 
     public function destroy($id)
     {
-        $stop = DB::table('stops')->where('id', $id)->first();
+        $stop = Stop::find($id);
 
         if (!$stop) {
             return response()->json(['message' => 'Arrêt non trouvé'], 404);
         }
 
-        DB::table('stops')->where('id', $id)->delete();
+        // Vérifier si l'arrêt est utilisé par des lignes
+        if ($stop->lines()->count() > 0) {
+            return response()->json(['message' => 'Impossible de supprimer cet arrêt car il est utilisé par des lignes'], 422);
+        }
 
-        return response()->json([
-            'message' => 'Arrêt supprimé avec succès'
-        ]);
+        $stop->delete();
+
+        return response()->json(['message' => 'Arrêt supprimé avec succès']);
     }
 }

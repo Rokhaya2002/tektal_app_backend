@@ -15,13 +15,13 @@ class Line extends Model
         'destination',
     ];
 
-    protected $casts = [
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
-
+    /**
+     * Relation many-to-many avec les arrêts (avec ordre)
+     */
     public function stops()
     {
-        return $this->hasMany(Stop::class);
+        return $this->belongsToMany(Stop::class, 'line_stop')
+            ->withPivot('order')
+            ->orderBy('line_stop.order');
     }
 }

@@ -2,14 +2,41 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    /**
+     * Inscription d'un utilisateur normal
+     */
+    public function register(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'is_admin' => false,
+        ]);
+
+        return response()->json([
+            'message' => 'Compte créé avec succès',
+            'user' => $user
+        ], 201);
+    }
+
+    /**
+     * Connexion d'un utilisateur normal
+     */
     public function login(Request $request)
     {
         $request->validate([
@@ -17,57 +44,29 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('email', $request->email)->where('is_admin', false)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Les identifiants fournis sont incorrects.'],
+                'email' => ['Identifiants incorrects.'],
             ]);
         }
+
+        // Mettre à jour la date de dernière connexion
+        $user->updateLastLogin();
 
         $token = $user->createToken('user-token')->plainTextToken;
 
         return response()->json([
+            'user' => $user,
             'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'is_admin' => $user->is_admin,
-            ],
             'message' => 'Connexion réussie'
         ]);
     }
 
-    public function register(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'is_admin' => false, // Par défaut, les nouveaux utilisateurs ne sont pas admin
-        ]);
-
-        $token = $user->createToken('user-token')->plainTextToken;
-
-        return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'is_admin' => $user->is_admin,
-            ],
-            'token' => $token,
-            'message' => 'Inscription réussie'
-        ], 201);
-    }
-
+    /**
+     * Déconnexion
+     */
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -77,15 +76,13 @@ class AuthController extends Controller
         ]);
     }
 
-    public function getCurrentUser(Request $request)
+    /**
+     * Récupérer les informations de l'utilisateur connecté
+     */
+    public function user(Request $request)
     {
         return response()->json([
-            'user' => [
-                'id' => $request->user()->id,
-                'name' => $request->user()->name,
-                'email' => $request->user()->email,
-                'is_admin' => $request->user()->is_admin,
-            ]
+            'user' => $request->user()
         ]);
     }
 }

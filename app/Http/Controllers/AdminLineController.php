@@ -2,45 +2,47 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Line;
+use App\Models\Stop;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
 
 class AdminLineController extends Controller
 {
     public function index()
     {
-        $lines = DB::table('lines')->get();
+        $lines = Line::with('stops')->get();
         return response()->json($lines);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'departure' => 'required|string|max:255',
             'destination' => 'required|string|max:255',
+            'selectedStops' => 'required|array|min:1',
+            'selectedStops.*' => 'exists:stops,id'
         ]);
 
-        $id = DB::table('lines')->insertGetId([
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
+        }
+
+        $line = Line::create([
             'name' => $request->name,
             'departure' => $request->departure,
-            'destination' => $request->destination,
-            'created_at' => now(),
-            'updated_at' => now(),
+            'destination' => $request->destination
         ]);
 
-        $line = DB::table('lines')->where('id', $id)->first();
+        $line->stops()->attach($request->selectedStops);
 
-        return response()->json([
-            'message' => 'Ligne créée avec succès',
-            'line' => $line
-        ], 201);
+        return response()->json(['message' => 'Ligne créée avec succès', 'line' => $line->load('stops')], 201);
     }
 
     public function show($id)
     {
-        $line = DB::table('lines')->where('id', $id)->first();
+        $line = Line::with('stops')->find($id);
 
         if (!$line) {
             return response()->json(['message' => 'Ligne non trouvée'], 404);
@@ -51,45 +53,46 @@ class AdminLineController extends Controller
 
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'departure' => 'required|string|max:255',
-            'destination' => 'required|string|max:255',
-        ]);
-
-        $line = DB::table('lines')->where('id', $id)->first();
+        $line = Line::find($id);
 
         if (!$line) {
             return response()->json(['message' => 'Ligne non trouvée'], 404);
         }
 
-        DB::table('lines')->where('id', $id)->update([
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'departure' => 'required|string|max:255',
+            'destination' => 'required|string|max:255',
+            'selectedStops' => 'required|array|min:1',
+            'selectedStops.*' => 'exists:stops,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
+        }
+
+        $line->update([
             'name' => $request->name,
             'departure' => $request->departure,
-            'destination' => $request->destination,
-            'updated_at' => now(),
+            'destination' => $request->destination
         ]);
 
-        $updatedLine = DB::table('lines')->where('id', $id)->first();
+        $line->stops()->sync($request->selectedStops);
 
-        return response()->json([
-            'message' => 'Ligne mise à jour avec succès',
-            'line' => $updatedLine
-        ]);
+        return response()->json(['message' => 'Ligne modifiée avec succès', 'line' => $line->load('stops')]);
     }
 
     public function destroy($id)
     {
-        $line = DB::table('lines')->where('id', $id)->first();
+        $line = Line::find($id);
 
         if (!$line) {
             return response()->json(['message' => 'Ligne non trouvée'], 404);
         }
 
-        DB::table('lines')->where('id', $id)->delete();
+        $line->stops()->detach();
+        $line->delete();
 
-        return response()->json([
-            'message' => 'Ligne supprimée avec succès'
-        ]);
+        return response()->json(['message' => 'Ligne supprimée avec succès']);
     }
 }

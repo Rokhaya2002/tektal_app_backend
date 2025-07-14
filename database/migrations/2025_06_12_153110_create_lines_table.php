@@ -11,16 +11,16 @@ return new class extends Migration
      *
      * @return void
      */
-   public function up()
-{
-    Schema::create('lines', function (Blueprint $table) {
-        $table->id();
-        $table->string('name'); 
-        $table->string('departure');
-        $table->string('destination');
-        $table->timestamps();
-    });
-}
+    public function up()
+    {
+        Schema::create('lines', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('departure');
+            $table->string('destination');
+            $table->timestamps();
+        });
+    }
 
 
     /**

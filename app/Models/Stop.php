@@ -9,27 +9,17 @@ class Stop extends Model
 {
     use HasFactory;
 
-    protected $table = 'stops';
-
     protected $fillable = [
         'name',
-        'line_id',
-        'stop_order',
     ];
 
-    protected $casts = [
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
-
-    public function line()
+    /**
+     * Relation many-to-many avec les lignes
+     */
+    public function lines()
     {
-        return $this->belongsTo(Line::class);
-    }
-
-    // Éviter le conflit avec le mot-clé 'order' de Laravel
-    public function scopeOrdered($query)
-    {
-        return $query->orderBy('stop_order', 'asc');
+        return $this->belongsToMany(Line::class, 'line_stop')
+            ->withPivot('order')
+            ->orderBy('pivot_order');
     }
 }

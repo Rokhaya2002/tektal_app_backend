@@ -4,11 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StopController;
 use App\Http\Controllers\LineController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\AdminAuthController;
-use App\Http\Controllers\AdminLineController;
-use App\Http\Controllers\AdminStopController;
 use App\Http\Controllers\SearchHistoryController;
+use App\Http\Controllers\AuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,61 +18,68 @@ use App\Http\Controllers\SearchHistoryController;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+// Routes d'authentification utilisateur
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+
+// Routes protégées utilisateur
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', [AuthController::class, 'user']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Route de recherche (protégée)
+    Route::get('/search', [LineController::class, 'search']);
+
+    // Routes pour l'historique de recherche (protégées)
+    Route::post('/search-history', [SearchHistoryController::class, 'store']);
+    Route::get('/search-history', [SearchHistoryController::class, 'index']);
+    Route::get('/search-history/suggestions', [SearchHistoryController::class, 'suggestions']);
+    Route::get('/search-history/search', [SearchHistoryController::class, 'search']);
+    Route::delete('/search-history', [SearchHistoryController::class, 'clear']);
+    Route::delete('/search-history/{id}', [SearchHistoryController::class, 'destroy']);
 });
 
-// Routes publiques
 Route::get('/stops', [StopController::class, 'index']);
+
 Route::get('/lines/{id}', [LineController::class, 'show']);
-Route::get('/search', [LineController::class, 'search']);
+
 Route::get('/all-lines', [LineController::class, 'all']);
 
-// Routes d'authentification générale (utilisateurs normaux)
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'register']);
+// Nouvelles routes pour l'autocomplétion
+Route::get('/autocomplete', [LineController::class, 'autocomplete']);
+Route::get('/suggest-lines', [LineController::class, 'suggestLines']);
+Route::get('/all-destinations', [LineController::class, 'allDestinations']);
 
-// Routes d'authentification admin
-Route::post('/admin/login', [AdminAuthController::class, 'login']);
-
-// Routes de recherche et historique
-Route::get('/search-history', [SearchHistoryController::class, 'index']);
-Route::post('/search-history', [SearchHistoryController::class, 'store']);
-Route::get('/autocomplete', [SearchHistoryController::class, 'autocomplete']);
-
-// Routes protégées (utilisateurs connectés)
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', [AuthController::class, 'getCurrentUser']);
-});
+// Auth admin (connexion uniquement)
+Route::post('/admin/login', [\App\Http\Controllers\AdminAuthController::class, 'login']);
 
 // Routes admin protégées
 Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
-    Route::post('/logout', [AdminAuthController::class, 'logout']);
-    Route::get('/user', [AdminAuthController::class, 'getCurrentUser']);
+    // Gestion des lignes admin
+    Route::get('/lines', [\App\Http\Controllers\AdminLineController::class, 'index']);
+    Route::post('/lines', [\App\Http\Controllers\AdminLineController::class, 'store']);
+    Route::get('/lines/{id}', [\App\Http\Controllers\AdminLineController::class, 'show']);
+    Route::put('/lines/{id}', [\App\Http\Controllers\AdminLineController::class, 'update']);
+    Route::delete('/lines/{id}', [\App\Http\Controllers\AdminLineController::class, 'destroy']);
 
-    // Gestion des lignes
-    Route::get('/lines', [AdminLineController::class, 'index']);
-    Route::post('/lines', [AdminLineController::class, 'store']);
-    Route::get('/lines/{id}', [AdminLineController::class, 'show']);
-    Route::put('/lines/{id}', [AdminLineController::class, 'update']);
-    Route::delete('/lines/{id}', [AdminLineController::class, 'destroy']);
+    // Gestion des arrêts admin
+    Route::get('/stops', [\App\Http\Controllers\AdminStopController::class, 'index']);
+    Route::post('/stops', [\App\Http\Controllers\AdminStopController::class, 'store']);
+    Route::get('/stops/{id}', [\App\Http\Controllers\AdminStopController::class, 'show']);
+    Route::put('/stops/{id}', [\App\Http\Controllers\AdminStopController::class, 'update']);
+    Route::delete('/stops/{id}', [\App\Http\Controllers\AdminStopController::class, 'destroy']);
 
-    // Gestion des arrêts
-    Route::get('/stops', [AdminStopController::class, 'index']);
-    Route::post('/stops', [AdminStopController::class, 'store']);
-    Route::get('/stops/{id}', [AdminStopController::class, 'show']);
-    Route::put('/stops/{id}', [AdminStopController::class, 'update']);
-    Route::delete('/stops/{id}', [AdminStopController::class, 'destroy']);
+    // Gestion des utilisateurs admin
+    Route::get('/users', [\App\Http\Controllers\AdminUserController::class, 'index']);
+    Route::get('/users/stats', [\App\Http\Controllers\AdminUserController::class, 'stats']);
+    Route::get('/users/activity', [\App\Http\Controllers\AdminUserController::class, 'recentActivity']);
+    Route::get('/users/{id}', [\App\Http\Controllers\AdminUserController::class, 'show']);
+    Route::post('/users', [\App\Http\Controllers\AdminUserController::class, 'store']);
+    Route::put('/users/{id}', [\App\Http\Controllers\AdminUserController::class, 'update']);
+    Route::delete('/users/{id}', [\App\Http\Controllers\AdminUserController::class, 'destroy']);
+    Route::patch('/users/{id}/toggle-status', [\App\Http\Controllers\AdminUserController::class, 'toggleStatus']);
 
-    // Statistiques
-    Route::get('/search-stats', [SearchHistoryController::class, 'getStats']);
-
-    Route::get('/users', function () {
-        return response()->json([]);
-    });
-
-    Route::get('/users/stats', function () {
-        return response()->json(['total' => 0, 'message' => 'Statistiques utilisateurs à implémenter']);
-    });
+    // Statistiques de recherche admin
+    Route::get('/search-stats', [SearchHistoryController::class, 'stats']);
+    Route::get('/search-chart-stats', [SearchHistoryController::class, 'chartStats']);
 });

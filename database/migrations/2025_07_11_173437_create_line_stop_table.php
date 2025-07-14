@@ -13,13 +13,15 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('stops', function (Blueprint $table) {
+        Schema::create('line_stop', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->foreignId('line_id')->constrained('lines')->onDelete('cascade');
+            $table->foreignId('stop_id')->constrained('stops')->onDelete('cascade');
+            $table->integer('order')->default(1);
             $table->timestamps();
+            $table->unique(['line_id', 'stop_id']);
         });
     }
-
 
     /**
      * Reverse the migrations.
@@ -28,6 +30,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('stops');
+        Schema::dropIfExists('line_stop');
     }
 };

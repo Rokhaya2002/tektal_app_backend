@@ -3,19 +3,28 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Models\Stop;
 
 class StopController extends Controller
 {
     public function index()
     {
-        $stops = DB::table('stops')
-            ->join('lines', 'stops.line_id', '=', 'lines.id')
-            ->select('stops.id', 'stops.name as stop_name', 'lines.name as line_name', 'stop_order')
-            ->orderBy('line_name')
-            ->orderBy('stop_order')
-            ->get();
+        $stops = Stop::with('lines')->get();
 
-        return response()->json($stops);
+        $formattedStops = $stops->map(function ($stop) {
+            return [
+                'id' => $stop->id,
+                'name' => $stop->name,
+                'lines' => $stop->lines->map(function ($line) {
+                    return [
+                        'id' => $line->id,
+                        'name' => $line->name,
+                        'order' => $line->pivot->order
+                    ];
+                })
+            ];
+        });
+
+        return response()->json($formattedStops);
     }
 }

@@ -13,13 +13,11 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('stops', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->timestamps();
+        Schema::table('users', function (Blueprint $table) {
+            $table->timestamp('last_login_at')->nullable();
+            $table->boolean('is_active')->default(true);
         });
     }
-
 
     /**
      * Reverse the migrations.
@@ -28,6 +26,8 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('stops');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn(['last_login_at', 'is_active']);
+        });
     }
 };

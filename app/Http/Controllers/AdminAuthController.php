@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class AdminAuthController extends Controller
 {
+    /**
+     * Connexion d'un admin
+     */
     public function login(Request $request)
     {
         $request->validate([
@@ -17,52 +20,32 @@ class AdminAuthController extends Controller
             'password' => 'required',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('email', $request->email)->where('is_admin', true)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Les identifiants fournis sont incorrects.'],
-            ]);
-        }
-
-        if (!$user->is_admin) {
-            throw ValidationException::withMessages([
-                'email' => ['Vous n\'avez pas les droits d\'administrateur.'],
+                'email' => ['Identifiants incorrects ou non admin.'],
             ]);
         }
 
         $token = $user->createToken('admin-token')->plainTextToken;
 
         return response()->json([
+            'user' => $user,
             'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'is_admin' => $user->is_admin,
-            ],
             'message' => 'Connexion réussie'
         ]);
     }
 
+    /**
+     * Déconnexion admin
+     */
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
             'message' => 'Déconnexion réussie'
-        ]);
-    }
-
-    public function getCurrentUser(Request $request)
-    {
-        return response()->json([
-            'user' => [
-                'id' => $request->user()->id,
-                'name' => $request->user()->name,
-                'email' => $request->user()->email,
-                'is_admin' => $request->user()->is_admin,
-            ]
         ]);
     }
 }
