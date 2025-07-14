@@ -15,11 +15,15 @@ return new class extends Migration
     {
         Schema::create('line_stop', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('line_id')->constrained('lines')->onDelete('cascade');
-            $table->foreignId('stop_id')->constrained('stops')->onDelete('cascade');
-            $table->integer('order')->default(1);
+            $table->unsignedBigInteger('line_id');
+            $table->unsignedBigInteger('stop_id');
+            $table->integer('stop_order')->default(1); // Ne pas utiliser "order"
             $table->timestamps();
             $table->unique(['line_id', 'stop_id']);
+
+            // Clés étrangères explicites pour MySQL
+            $table->foreign('line_id')->references('id')->on('lines')->onDelete('cascade');
+            $table->foreign('stop_id')->references('id')->on('stops')->onDelete('cascade');
         });
     }
 

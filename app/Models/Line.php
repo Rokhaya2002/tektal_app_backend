@@ -21,7 +21,7 @@ class Line extends Model
     public function stops()
     {
         return $this->belongsToMany(Stop::class, 'line_stop')
-            ->withPivot('order')
-            ->orderBy('line_stop.order');
+            ->withPivot('stop_order')
+            ->orderBy('line_stop.stop_order');
     }
 }

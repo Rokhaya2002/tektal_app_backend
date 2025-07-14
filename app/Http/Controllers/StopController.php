@@ -19,7 +19,7 @@ class StopController extends Controller
                     return [
                         'id' => $line->id,
                         'name' => $line->name,
-                        'order' => $line->pivot->order
+                        'stop_order' => $line->pivot->stop_order
                     ];
                 })
             ];
